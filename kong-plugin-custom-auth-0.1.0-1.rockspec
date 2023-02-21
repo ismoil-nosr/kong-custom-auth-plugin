@@ -1,26 +1,25 @@
-local plugin_name = "myplugin"
+local plugin_name = "custom-auth"
 local package_name = "kong-plugin-" .. plugin_name
 local package_version = "0.1.0"
 local rockspec_revision = "1"
-
-local github_account_name = "Kong"
-local github_repo_name = "kong-plugin"
-local git_checkout = package_version == "dev" and "master" or package_version
+local github_account_name = "ismoil-nosr"
+local github_repo_name = "kong-custom-auth-plugin"
 
 
 package = package_name
 version = package_version .. "-" .. rockspec_revision
 supported_platforms = { "linux", "macosx" }
 source = {
-  url = "git+https://github.com/"..github_account_name.."/"..github_repo_name..".git",
-  branch = git_checkout,
+  url = "git://github.com/ismoil-nosr/kong-custom-auth-plugin.git",
+  branch = "main",
+  tag = "v0.1.0",
 }
 
 
 description = {
-  summary = "Kong is a scalable and customizable API Management Layer built on top of Nginx.",
+  summary = "Custom auth",
   homepage = "https://"..github_account_name..".github.io/"..github_repo_name,
-  license = "Apache 2.0",
+  license = "MIT",
 }
 
 

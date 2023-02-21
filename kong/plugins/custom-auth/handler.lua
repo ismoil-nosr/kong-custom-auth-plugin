@@ -4,13 +4,14 @@ local kong = kong
 local ngx = ngx
 local pairs = pairs
 local type = type
+local kong_meta = require "kong.meta"
 
 local plugin_name = "custom-auth"
 
 local MyAuthPluginHandler = {}
 
 MyAuthPluginHandler.PRIORITY = 999
-MyAuthPluginHandler.VERSION = "1.0.0"
+MyAuthPluginHandler.VERSION = "0.1.0"
 
 function MyAuthPluginHandler:access(conf)
   -- Create a new HTTP client instance
