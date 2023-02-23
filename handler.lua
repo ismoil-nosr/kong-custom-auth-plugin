@@ -24,6 +24,15 @@ local function get_headers(header_names, headers)
   return result
 end
 
+local function compareHeaders(kong_request_header, auth_request_headers)
+  for k, v in pairs(auth_request_headers) do
+    if kong_request_header[k] ~= v then
+      return false
+    end
+  end
+  return true
+end
+
 function MyAuthPluginHandler:access(conf)
   -- Create a new HTTP client instance
   local httpc = http.new()
@@ -42,6 +51,10 @@ function MyAuthPluginHandler:access(conf)
     request_headers[conf.access_token_header] = conf.access_token_value
   end
 
+  if compareHeaders(kong_request_header, auth_request_headers) ~= true then 
+    return -- if not all headers are specified in kong_request_header then it means we dont make request to auth service
+  end
+
   -- Create a new HTTP request to the authorization service
   local res, err = httpc:request_uri(auth_url, {
     method = "POST",
@@ -50,14 +63,14 @@ function MyAuthPluginHandler:access(conf)
   })
 
   -- Check if the request was successful
-  if res and res.status == 202 then
-    -- Extract the X-Auth-User header from the response
+  if res then
+    if res.status >= 200 and res.status < 300 then
+      -- Get the upstream headers from the HTTP response
+      local upstream_headers = get_headers(conf.upstream_headers, res.headers)
 
-    -- Get the upstream headers from the HTTP response
-    local upstream_headers = get_headers(conf.upstream_headers, res.headers)
-
-    -- Set the upstream headers for the response
-    kong.service.request.set_headers(upstream_headers)
+      -- Set the upstream headers for the response
+      kong.service.request.set_headers(upstream_headers)
+    end
   else
     kong.log.err("Authorization service request failed: ", err)
   end
