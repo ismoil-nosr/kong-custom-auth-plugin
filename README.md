@@ -41,7 +41,7 @@ curl --location 'http://kong-api-domain:8001/plugins/' \
 }'
 ```
 
-**Attention: don't forget to edit `validation_endpoint`**  
+**Attention: be sure to edit `validation_endpoint`**  
 
 ---
 
