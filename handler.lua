@@ -5,11 +5,7 @@ local kong = kong
 
 local plugin_name = "custom-auth"
 
-local MyAuthPluginHandler = {}
-
-MyAuthPluginHandler.PRIORITY = 999
-MyAuthPluginHandler.VERSION = "0.1.0"
-
+-- Gets the specified headers from the request object and returns them in a table
 local function get_headers(header_names, headers)
   local result = {}
   if not header_names then
@@ -24,36 +20,24 @@ local function get_headers(header_names, headers)
   return result
 end
 
-local function compareHeaders(kong_request_header, auth_request_headers)
-  for k, v in pairs(auth_request_headers) do
-    if kong_request_header[k] ~= v then
+-- Compares two tables of headers and returns true if they match, false otherwise
+local function compareHeaders(request_headers, auth_request_headers)
+  if not auth_request_headers then
+    return false
+  end
+
+  for k, v in ipairs(auth_request_headers) do
+    if request_headers[k] ~= v then
       return false
     end
   end
   return true
 end
 
-function MyAuthPluginHandler:access(conf)
+-- Sends a request to the authorization service using the provided URL and headers
+local function send_auth_request(auth_url, request_headers, conf)
   -- Create a new HTTP client instance
   local httpc = http.new()
-
-  -- Set the target URL for the authorization service
-  local auth_url = conf.validation_endpoint
-
-  -- Get the request headers from the Kong request object
-  local request_headers = kong.request.get_headers()
-
-  -- Filter the request headers to only include those specified in the config
-  request_headers = get_headers(conf.request_headers, request_headers)
-
-  -- Add any additional headers specified in the config
-  if conf.access_token_header and conf.access_token_value then
-    request_headers[conf.access_token_header] = conf.access_token_value
-  end
-
-  if compareHeaders(kong_request_header, auth_request_headers) ~= true then 
-    return -- if not all headers are specified in kong_request_header then it means we dont make request to auth service
-  end
 
   -- Create a new HTTP request to the authorization service
   local res, err = httpc:request_uri(auth_url, {
@@ -74,6 +58,45 @@ function MyAuthPluginHandler:access(conf)
   else
     kong.log.err("Authorization service request failed: ", err)
   end
+end
+
+-- Handles the request by getting the necessary headers, filtering them, and sending them to the auth service
+local function handle_request(conf)
+  -- Set the target URL for the authorization service
+  local auth_url = conf.validation_endpoint
+
+  -- Get the request headers from the Kong request object
+  local request_headers = kong.request.get_headers()
+
+  -- Filter the request headers to only include those specified in the config
+  request_headers = get_headers(conf.request_headers, request_headers)
+
+  -- Add any additional headers specified in the config
+  if conf.access_token_header and conf.access_token_value then
+    request_headers[conf.access_token_header] = conf.access_token_value
+  end
+
+  -- Log the headers being sent to the authorization service
+  -- kong.log.info("Sending headers to authorization service: ", cjson.encode(request_headers))
+
+  -- Check if all necessary headers are present before sending the request
+  if compareHeaders(request_headers, conf.auth_request_headers) ~= true then 
+    return -- If not all headers are specified in auth_request_headers then we don't make a request to the auth service
+  end  
+
+  -- Send the request to the authorization service
+  send_auth_request(auth_url, request_headers, conf)
+end
+
+-- Handler for the custom authentication plugin
+local MyAuthPluginHandler = {
+  PRIORITY = 999,
+  VERSION = "0.1.0"
+}
+
+-- Access phase function called by Kong for each request
+function MyAuthPluginHandler:access(conf)
+  handle_request(conf)
 end
 
 return MyAuthPluginHandler
