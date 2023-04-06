@@ -1,4 +1,5 @@
 # kong-custom-auth-plugin
+Kong custom authorization plugin that forwards requests to your own authorization service with header.
 
 # Installation steps
 ### 1. Install plugin
